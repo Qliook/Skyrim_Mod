@@ -1,4 +1,4 @@
-Scriptname QTSLinker extends ObjectReference 
+Scriptname _aaaBattleScript extends ObjectReference 
 
 import utility
 
@@ -8,7 +8,7 @@ ObjectReference[] property SpawnEnemy auto
 int property CountEnemy auto
 int property maxWaveEnemy auto
 int property minWaveEnemy auto
-int EnemyKilled
+int EnemyKilled = 0
 
 bool property Boss = false auto
 Formlist property ListBoss auto
@@ -18,9 +18,9 @@ bool LastWave = true
 int property WaitBeforeFight = 0 auto
 int property WaitBeforeNextWave = 0 auto
 int property WaitBeforeBossWave = 0 auto
+int property WaitBeforeDoorClosed = 0 auto
 
 ObjectReference[] property Doors auto
-int property WaitBeforeClosedDoor = 0 auto
 
 Auto State Waiting
 	Event onActivate(ObjectReference triggerRef)
@@ -29,8 +29,8 @@ Auto State Waiting
 	EndEvent
 EndState
 
-Event OnUpdate()
-	
+Event OnUpdate()	
+	;Волны с мобами
 	if (CountEnemy > EnemyKilled + maxWaveEnemy) && (game.GetPlayer().IsInCombat() == false)
 		int SpawnCount = Utility.RandomInt(minWaveEnemy, maxWaveEnemy)
 		SpawnMob(SpawnCount)		
@@ -43,6 +43,7 @@ Event OnUpdate()
 		else
 			LastWave = false 
 		endif
+		;Волна с боссом
 	elseif(CountEnemy == EnemyKilled) && (game.GetPlayer().IsInCombat() == false) && (Boss) && (SpavnBoss)
 		Wait(WaitBeforeBossWave)
 		int g = Utility.RandomInt(0, (SpawnEnemy.Length - 1 ))
@@ -66,20 +67,19 @@ Function StartFight()
 		Debug.MessageBox("Список боссов пуст")
 	elseif(Doors.Length == 0)
 		Debug.MessageBox("Список дверей пуст")
-	else
-		ClosedDoor()
-		Wait(WaitBeforeFight)
-	    RegisterForUpdate(2) 
 	endif
+	;Конец проверки и запуск Update()
+	ClosedDoor()
+	Wait(WaitBeforeFight)
+	RegisterForUpdate(2) 	
 EndFunction
 
 Function EndFight()
 	OpenDoor()
 EndFunction
 
-;ещё не готово, потому как хз как это сделать
 Function ClosedDoor()
-	Wait(WaitBeforeClosedDoor)
+	Wait(WaitBeforeDoorClosed)
 	int i = 0
 	While i <= (Doors.Length - 1)
 		Doors[i].Activate(self)
@@ -87,6 +87,7 @@ Function ClosedDoor()
 		;Debug.MessageBox("дверь закрылась")
 		i += 1
 	EndWhile
+	Wait(1)
 EndFunction
 
 Function OpenDoor()
@@ -97,16 +98,18 @@ Function OpenDoor()
 		;Debug.MessageBox("дверь открылась")
 		i += 1
 	EndWhile
+	Wait(1)
 EndFunction
 
 Function SpawnMob(int SpawnCount)
+	Wait(WaitBeforeNextWave)
 	int i = 0
-		While i < SpawnCount
-			int g = Utility.RandomInt(0, (SpawnEnemy.Length - 1 ))
-			SpawnEnemy[g].placeatme(ListEnemy.GetAt(Utility.RandomInt(0, (ListEnemy.GetSize() - 1 ))))
-
-			EnemyKilled += 1
-			i += 1
-		EndWhile
-		;Debug.MessageBox("Заспавленно = " + i)
+	While i < SpawnCount
+		int g = Utility.RandomInt(0, (SpawnEnemy.Length - 1 ))
+		SpawnEnemy[g].placeatme(ListEnemy.GetAt(Utility.RandomInt(0, (ListEnemy.GetSize() - 1 ))))
+		EnemyKilled += 1
+		i += 1
+	EndWhile
+	;Debug.MessageBox("Заспавленно = " + i)
+	Wait(1)
 EndFunction
