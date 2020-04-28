@@ -1,131 +1,112 @@
-Scriptname _aaaBattleScript extends ObjectReference 
- 
+Scriptname QTSLinker extends ObjectReference 
+
 import utility
 
-;Formlist property ListBoss auto
-;{List босса}
-
 Formlist property ListEnemy auto
-{List NPC}
-
-int property ColVoEnemy auto
-{Total number of spawn NPC}
-
-int property minEnemy auto
-{Min amount of spawn NPC}
-
-int property maxEnemy auto
-{Max amount of spawn NPC}
-
-spell property MGTimeTeleportOutEffect auto 
-{Visual appearance effect NPC}
-
-MusicType property BatlleMusic auto
-
-ObjectReference property LightOn auto
-ObjectReference property Object1 auto
-ObjectReference property Object2 auto
-ObjectReference property Object3 auto
-ObjectReference property Object4 auto
-ObjectReference property Object5 auto
-ObjectReference property LastActivate auto
 ObjectReference[] property SpawnEnemy auto
-{Spawn point NPC}
 
-int NowEnemy
-int RegulInt
-int i	
+int property CountEnemy auto
+int property maxWaveEnemy auto
+int property minWaveEnemy auto
+int EnemyKilled
+
+bool property Boss = false auto
+Formlist property ListBoss auto
+bool SpavnBoss = true
+bool LastWave = true
+
+int property WaitBeforeFight = 0 auto
+int property WaitBeforeNextWave = 0 auto
+int property WaitBeforeBossWave = 0 auto
+
+ObjectReference[] property Doors auto
+int property WaitBeforeClosedDoor = 0 auto
 
 Auto State Waiting
-  Event onActivate(ObjectReference triggerRef)
-
-    ;Запуск дверей и музыки
-  	wait(4)
-
-  	Object1.Activate(self)
-  	Object2.Activate(self)
-  	Object3.Activate(self)
-  	Object4.Activate(self)
-  	Object5.Activate(self)
-
-  	BatlleMusic.Add()
-;Задержка перед началом волн
-	wait(9)
-    Debug.MessageBox("Первая волна пошла")
-
-    NowEnemy = 0
-    i = 0
-    RegulInt = Utility.RandomInt(minEnemy, maxEnemy)
-
-    While i < RegulInt
-      int g = Utility.RandomInt(0, (SpawnEnemy.Length - 1 ))
-
-	    SpawnEnemy[g].placeatme(ListEnemy.GetAt(Utility.RandomInt(0, (ListEnemy.GetSize() - 1 ))))
-      SpawnEnemy[g].placeatme(MGTimeTeleportOutEffect)
-      i +=1
-    EndWhile
-
-    Debug.MessageBox("Количество врагов = " + RegulInt) 
-    RegisterForUpdate(1)     
-  EndEvent
+	Event onActivate(ObjectReference triggerRef)
+		;Debug.MessageBox("Р‘РѕР№ РЅР°С‡Р°Р»СЃСЏ")
+		StartFight()
+	EndEvent
 EndState
 
 Event OnUpdate()
+	
+	if (CountEnemy > EnemyKilled + maxWaveEnemy) && (game.GetPlayer().IsInCombat() == false)
+		int SpawnCount = Utility.RandomInt(minWaveEnemy, maxWaveEnemy)
+		SpawnMob(SpawnCount)		
+	elseif(CountEnemy < EnemyKilled + maxWaveEnemy) && (game.GetPlayer().IsInCombat() == false) && (LastWave)
+		int SpawnCount = (CountEnemy - EnemyKilled)
+		SpawnMob(SpawnCount)
+		if(Boss == false)
+			UnRegisterForUpdate()
+			EndFight()
+		else
+			LastWave = false 
+		endif
+	elseif(CountEnemy == EnemyKilled) && (game.GetPlayer().IsInCombat() == false) && (Boss) && (SpavnBoss)
+		Wait(WaitBeforeBossWave)
+		int g = Utility.RandomInt(0, (SpawnEnemy.Length - 1 ))
+		SpawnEnemy[g].placeatme(ListBoss.GetAt(Utility.RandomInt(0, (ListBoss.GetSize() - 1 ))))
+		;Debug.MessageBox("Р‘РѕСЃСЃ Р·Р°СЃРїР°РІР»РµРЅ")
+		Wait(1)
+		SpavnBoss = false
+	endif
+	if (SpavnBoss == false) && (game.GetPlayer().IsInCombat() == false) 
+		EndFight()
+		UnRegisterForUpdate()
+	endif
+EndEvent
 
-  wait(1.0)
+Function StartFight()
+	if(ListEnemy.GetSize() == 0)
+		Debug.MessageBox("РЎРїРёСЃРѕРє РјРѕР±РѕРІ РїСѓСЃС‚")
+	elseif(SpawnEnemy.Length == 0)
+		Debug.MessageBox("РЎРїРёСЃРѕРє СЃРїР°РІРЅРѕРІ РѕС‚СЃСѓС‚СЃРІСѓРµС‚")
+	elseif(ListBoss.GetSize() == 0) && (Boss)
+		Debug.MessageBox("РЎРїРёСЃРѕРє Р±РѕСЃСЃРѕРІ РїСѓСЃС‚")
+	elseif(Doors.Length == 0)
+		Debug.MessageBox("РЎРїРёСЃРѕРє РґРІРµСЂРµР№ РїСѓСЃС‚")
+	else
+		ClosedDoor()
+		Wait(WaitBeforeFight)
+	    RegisterForUpdate(2) 
+	endif
+EndFunction
 
-	if game.GetPlayer().IsInCombat()
-  	else       
+Function EndFight()
+	OpenDoor()
+EndFunction
 
-		NowEnemy += i
-		Debug.MessageBox("Количество Убитых = " + NowEnemy)
+;РµС‰С‘ РЅРµ РіРѕС‚РѕРІРѕ, РїРѕС‚РѕРјСѓ РєР°Рє С…Р· РєР°Рє СЌС‚Рѕ СЃРґРµР»Р°С‚СЊ
+Function ClosedDoor()
+	Wait(WaitBeforeClosedDoor)
+	int i = 0
+	While i <= (Doors.Length - 1)
+		Doors[i].Activate(self)
+		Doors[i].BlockActivation()
+		;Debug.MessageBox("РґРІРµСЂСЊ Р·Р°РєСЂС‹Р»Р°СЃСЊ")
+		i += 1
+	EndWhile
+EndFunction
 
-		;Если ещё много осталось
-		if ColVoEnemy > NowEnemy + maxEnemy
-      
-    		i = 0
-    		RegulInt = Utility.RandomInt(minEnemy, maxEnemy)
+Function OpenDoor()
+	int i = 0
+	While i <= (Doors.Length - 1)
+		Doors[i].BlockActivation(false)
+		Doors[i].Activate(self)
+		;Debug.MessageBox("РґРІРµСЂСЊ РѕС‚РєСЂС‹Р»Р°СЃСЊ")
+		i += 1
+	EndWhile
+EndFunction
 
-   			;Задержка перед волнами(серединными)
-			wait(3.0)
-
-			While i < RegulInt
+Function SpawnMob(int SpawnCount)
+	int i = 0
+		While i < SpawnCount
 			int g = Utility.RandomInt(0, (SpawnEnemy.Length - 1 ))
 			SpawnEnemy[g].placeatme(ListEnemy.GetAt(Utility.RandomInt(0, (ListEnemy.GetSize() - 1 ))))
-			SpawnEnemy[g].placeatme(MGTimeTeleportOutEffect)
-			i +=1
+
+			EnemyKilled += 1
+			i += 1
 		EndWhile
-
-			Debug.MessageBox("Следующая волна. Кол-во врагов = " + RegulInt)
-			;Если ещё осталось меньше чем максимально возможно отспавнить
-    else
-		RegulInt = ColVoEnemy - NowEnemy
-		i = 0
-		;Задержка перед волнами(последними)
-		wait(5.0)
-
-		While i < RegulInt
-        int g = Utility.RandomInt(0, (SpawnEnemy.Length - 1 ))
-        SpawnEnemy[g].placeatme(ListEnemy.GetAt(Utility.RandomInt(0, (ListEnemy.GetSize() - 1 ))))
-        SpawnEnemy[g].placeatme(MGTimeTeleportOutEffect)
-        i +=1
-	EndWhile 
-
-        Debug.MessageBox("Осталось убить " + (ColVoEnemy - NowEnemy))
-        UnregisterForUpdate()
-
-       ; SpawnEnemy[Utility.RandomInt(0, (SpawnEnemy.Length - 1 ))].placeatme(ListBoss.GetAt(Utility.RandomInt(0, (ListBoss.GetSize() - 1 ))))
-
-        wait(3.0) 
-		;Отпирание дверей и выключение музыки
-  		Object1.Activate(self)
-  		Object2.Activate(self)
-  		Object3.Activate(self)
-  		Object4.Activate(self)
-  		Object5.Activate(self)
-		LastActivate.Activate(self)
-
-  		BatlleMusic.Remove()
-    endif
-  endif
-EndEvent
+		;Debug.MessageBox("Р—Р°СЃРїР°РІР»РµРЅРЅРѕ = " + i)
+EndFunction
