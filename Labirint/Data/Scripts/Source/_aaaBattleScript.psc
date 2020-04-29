@@ -1,5 +1,5 @@
 Scriptname _aaaBattleScript extends ObjectReference 
-
+ 
 import utility
 
 Formlist property ListEnemy auto
@@ -21,16 +21,19 @@ int property WaitBeforeBossWave = 0 auto
 int property WaitBeforeDoorClosed = 0 auto
 
 ObjectReference[] property Doors auto
+ObjectReference property LastActivate auto
+
+MusicType property BatlleMusic auto
 
 Auto State Waiting
 	Event onActivate(ObjectReference triggerRef)
-		;Debug.MessageBox("Р‘РѕР№ РЅР°С‡Р°Р»СЃСЏ")
+		;Debug.MessageBox("Бой начался")
 		StartFight()
 	EndEvent
 EndState
 
 Event OnUpdate()	
-	;Р’РѕР»РЅС‹ СЃ РјРѕР±Р°РјРё
+	;Волны с мобами
 	if (CountEnemy > EnemyKilled + maxWaveEnemy) && (game.GetPlayer().IsInCombat() == false)
 		int SpawnCount = Utility.RandomInt(minWaveEnemy, maxWaveEnemy)
 		SpawnMob(SpawnCount)		
@@ -43,12 +46,12 @@ Event OnUpdate()
 		else
 			LastWave = false 
 		endif
-		;Р’РѕР»РЅР° СЃ Р±РѕСЃСЃРѕРј
+		;Волна с боссом
 	elseif(CountEnemy == EnemyKilled) && (game.GetPlayer().IsInCombat() == false) && (Boss) && (SpavnBoss)
 		Wait(WaitBeforeBossWave)
 		int g = Utility.RandomInt(0, (SpawnEnemy.Length - 1 ))
 		SpawnEnemy[g].placeatme(ListBoss.GetAt(Utility.RandomInt(0, (ListBoss.GetSize() - 1 ))))
-		;Debug.MessageBox("Р‘РѕСЃСЃ Р·Р°СЃРїР°РІР»РµРЅ")
+		;Debug.MessageBox("Босс заспавлен")
 		Wait(1)
 		SpavnBoss = false
 	endif
@@ -60,22 +63,24 @@ EndEvent
 
 Function StartFight()
 	if(ListEnemy.GetSize() == 0)
-		Debug.MessageBox("РЎРїРёСЃРѕРє РјРѕР±РѕРІ РїСѓСЃС‚")
+		Debug.MessageBox("Список мобов пуст")
 	elseif(SpawnEnemy.Length == 0)
-		Debug.MessageBox("РЎРїРёСЃРѕРє СЃРїР°РІРЅРѕРІ РѕС‚СЃСѓС‚СЃРІСѓРµС‚")
+		Debug.MessageBox("Список спавнов отсутсвует")
 	elseif(ListBoss.GetSize() == 0) && (Boss)
-		Debug.MessageBox("РЎРїРёСЃРѕРє Р±РѕСЃСЃРѕРІ РїСѓСЃС‚")
+		Debug.MessageBox("Список боссов пуст")
 	elseif(Doors.Length == 0)
-		Debug.MessageBox("РЎРїРёСЃРѕРє РґРІРµСЂРµР№ РїСѓСЃС‚")
+		Debug.MessageBox("Список дверей пуст")
 	endif
-	;РљРѕРЅРµС† РїСЂРѕРІРµСЂРєРё Рё Р·Р°РїСѓСЃРє Update()
+	;Конец проверки и запуск Update()
 	ClosedDoor()
 	Wait(WaitBeforeFight)
+	BatlleMusic.Add()
 	RegisterForUpdate(2) 	
 EndFunction
 
 Function EndFight()
 	OpenDoor()
+	BatlleMusic.Remove()
 EndFunction
 
 Function ClosedDoor()
@@ -84,7 +89,7 @@ Function ClosedDoor()
 	While i <= (Doors.Length - 1)
 		Doors[i].Activate(self)
 		Doors[i].BlockActivation()
-		;Debug.MessageBox("РґРІРµСЂСЊ Р·Р°РєСЂС‹Р»Р°СЃСЊ")
+		;Debug.MessageBox("дверь закрылась")
 		i += 1
 	EndWhile
 	Wait(1)
@@ -95,7 +100,8 @@ Function OpenDoor()
 	While i <= (Doors.Length - 1)
 		Doors[i].BlockActivation(false)
 		Doors[i].Activate(self)
-		;Debug.MessageBox("РґРІРµСЂСЊ РѕС‚РєСЂС‹Р»Р°СЃСЊ")
+		LastActivate.Activate(self)
+		;Debug.MessageBox("дверь открылась")
 		i += 1
 	EndWhile
 	Wait(1)
@@ -110,6 +116,6 @@ Function SpawnMob(int SpawnCount)
 		EnemyKilled += 1
 		i += 1
 	EndWhile
-	;Debug.MessageBox("Р—Р°СЃРїР°РІР»РµРЅРЅРѕ = " + i)
+	;Debug.MessageBox("Заспавленно = " + i)
 	Wait(1)
 EndFunction
